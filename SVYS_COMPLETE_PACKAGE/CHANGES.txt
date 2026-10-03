@@ -1,0 +1,11 @@
+SRI VINAYAKA YUVA SENA - FINAL PACKAGE
+
+Updated index.html only for the requested UI/data changes:
+1. Added all 16 member mobile numbers to the member data.
+2. Existing localStorage member records are automatically populated with the correct phone number when their phone is blank.
+3. Monthly Collection member rows show the mobile number beside the member name.
+4. A View Screenshot button appears beside PAID/PARTIAL status when a payment screenshot exists.
+5. View Screenshot opens the saved payment screenshot in a colorful payment-proof modal with member, phone, month, amount and date.
+6. Payment screenshot remains mandatory for new contributions.
+
+Other supplied project files are included unchanged.
