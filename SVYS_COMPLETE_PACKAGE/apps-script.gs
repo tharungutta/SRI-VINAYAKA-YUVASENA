@@ -8,6 +8,8 @@ function setupSheets(){
   let p=ss.getSheetByName(SHEET_PAYMENTS)||ss.insertSheet(SHEET_PAYMENTS);
   if(m.getLastRow()===0)m.appendRow(['Member ID','Name','Mobile No']);
   if(p.getLastRow()===0)p.appendRow(['Payment ID','Member ID','Member Name','Mobile No','Month','Amount','Payment Date','Screenshot URL','Screenshot File','Created At']);
+  let a=ss.getSheetByName('Login Activity')||ss.insertSheet('Login Activity');
+  if(a.getLastRow()===0)a.appendRow(['Login ID','Firebase UID','Display Name','Email','Login At','Method']);
 }
 function doGet(){
   setupSheets();
@@ -17,6 +19,8 @@ function doPost(e){
   try{
     setupSheets();
     const body=JSON.parse(e.postData.contents||'{}');
+    if(body.action==='logLogin') return jsonOut(logLogin_(body));
+    if(body.action==='getLoginActivity'){auth_(body);return jsonOut(getLoginActivity_());}
     if(body.action==='addContribution') return jsonOut(addContribution_(body));
     if(body.action==='addMember') return jsonOut(addMember_(body));
     return jsonOut({ok:false,error:'Unknown action'});
@@ -61,6 +65,26 @@ function addContribution_(b){
 }
 function getOrCreateFolder_(parent,name){
   const it=parent.getFoldersByName(name);return it.hasNext()?it.next():parent.createFolder(name);
+}
+
+function logLogin_(b){
+  const apiKey=PropertiesService.getScriptProperties().getProperty('FIREBASE_WEB_API_KEY')||'AIzaSyBd6kCvSAtdJBJajM2MX01Ux6fiLJGivII';
+  if(!b.idToken)throw new Error('Missing Firebase login token.');
+  const response=UrlFetchApp.fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key='+encodeURIComponent(apiKey),{method:'post',contentType:'application/json',payload:JSON.stringify({idToken:b.idToken}),muteHttpExceptions:true});
+  const result=JSON.parse(response.getContentText()||'{}');
+  if(response.getResponseCode()!==200||!result.users||!result.users.length)throw new Error('Firebase token verification failed.');
+  const u=result.users[0];
+  if(!u.emailVerified)throw new Error('Email address is not verified.');
+  const sh=SpreadsheetApp.getActive().getSheetByName('Login Activity');
+  const at=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),'yyyy-MM-dd HH:mm:ss');
+  sh.appendRow(['L'+Date.now(),String(u.localId||''),String(u.displayName||''),String(u.email||''),at,String(b.method||'password')]);
+  return {ok:true};
+}
+function getLoginActivity_(){
+  const sh=SpreadsheetApp.getActive().getSheetByName('Login Activity');
+  const values=sh.getDataRange().getValues();
+  const rows=values.slice(1).filter(r=>r[0]).slice(-200).reverse().map(r=>({displayName:String(r[2]||''),email:String(r[3]||''),loginAt:r[4] instanceof Date?Utilities.formatDate(r[4],Session.getScriptTimeZone(),'yyyy-MM-dd HH:mm:ss'):String(r[4]||''),method:String(r[5]||'password')}));
+  return {ok:true,activity:rows};
 }
 function getData_(){
   const ss=SpreadsheetApp.getActive();const ms=ss.getSheetByName(SHEET_MEMBERS),ps=ss.getSheetByName(SHEET_PAYMENTS);
