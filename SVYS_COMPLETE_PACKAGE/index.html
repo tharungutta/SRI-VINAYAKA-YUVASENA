@@ -68,6 +68,7 @@ async function loadData(){
   try{const r=await fetch(apiUrl(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();state={members:d.members||[],payments:d.payments||[]};render();}
   catch(e){console.error(e);state={members:SEED.map((name,i)=>({id:i+1,name,phone:PHONE_MAP[name]||''})),payments:[]};render();alert('Live database could not be reached. Check config.js and Apps Script deployment.');}
 }
+window.svysLoadTrackerData=loadData;
 async function postAction(payload){
   if(!apiUrl()||apiUrl().includes('PASTE_YOUR'))throw new Error('APPS_SCRIPT_URL is not configured in config.js');
   const r=await fetch(apiUrl(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
